@@ -1,0 +1,35 @@
+--Integrate all feature and tag answers
+WITH T1
+AS
+(
+	SELECT [m_datetime], [machineID] FROM [dbo].[telemetry3]
+)
+,T2
+AS
+(
+	SELECT A.[m_datetime],A.[machineID],B.[failure]
+	FROM T1 AS A JOIN [dbo].[failures] AS B ON (A.[m_datetime]>=DATEADD(HOUR,-6,B.[m_datetime]) AND A.[m_datetime]<=B.[m_datetime]) AND A.[machineID]=B.[machineID]
+)
+,T3
+AS
+(
+	SELECT A.*,C.[failure]
+	FROM [dbo].[telemetry3] AS A CROSS APPLY(SELECT [failure] FROM T2 AS B WHERE A.[m_datetime]=B.[m_datetime] AND A.[machineID]=B.[machineID]) AS C
+)
+,T4
+AS
+(
+	SELECT *,'None' AS [Failure] FROM [dbo].[telemetry3] AS A
+	WHERE NOT EXISTS(SELECT * FROM T3 AS B WHERE A.[m_datetime]=B.[m_datetime] AND A.[machineID]=B.[machineID])
+)
+,T5
+AS
+(
+	SELECT * FROM T3
+	UNION ALL
+	SELECT * FROM T4
+)
+SELECT * INTO [final_telemetry] FROM T5;
+
+
+CREATE CLUSTERED INDEX C1 ON [final_telemetry]([m_datetime],[machineID])
