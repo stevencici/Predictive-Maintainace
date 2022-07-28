@@ -1,0 +1,48 @@
+USE Maintain
+
+SELECT COUNT(*) FROM final_telemetry WHERE failure='NONE'
+SELECT COUNT(*) FROM final_telemetry WHERE failure<>'NONE'
+
+SELECT model, COUNT(*) FROM final_telemetry
+WHERE failure<>'None'
+GROUP BY model
+
+CREATE TABLE 模型表
+(
+	編號 INT IDENTITY(1,1),
+	名稱 NVARCHAR(30),
+	模型 VARBINARY(MAX),
+	建立時間 DATETIME2(2) DEFAULT SYSDATETIME()
+)
+
+
+--訓練組
+WITH T1
+AS
+(
+	SELECT *FROM 
+	(
+		SELECT TOP (150000) * FROM final_telemetry
+		WHERE failure='None' AND m_datetime<'2015-10-1' ORDER BY NEWID() --150000
+	) AS A
+	UNION ALL
+	SELECT * FROM final_telemetry
+	WHERE failure<>'None' AND m_datetime<'2015-10-1' --35903
+)
+SELECT * INTO Train_1 FROM T1;
+
+--對照組
+WITH T1
+AS
+(
+
+	SELECT *FROM 
+	(
+		SELECT TOP (45000) * FROM final_telemetry
+		WHERE failure='None' AND m_datetime>='2015-10-1' --45000
+	) AS A
+	UNION ALL
+	SELECT * FROM final_telemetry
+	WHERE failure<>'None' AND m_datetime>='2015-10-1' --11179
+)
+SELECT * INTO Test_1 FROM T1
