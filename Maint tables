@@ -1,0 +1,32 @@
+--create maint tables
+WITH T1
+AS
+(
+	SELECT [datetime], [machineID], [comp1], [comp2], [comp3], [comp4]
+	FROM [dbo].[maint]
+	PIVOT (COUNT([comp]) FOR [comp] IN ([comp1], [comp2], [comp3], [comp4])) AS P
+)
+SELECT ISNULL(A.[m_datetime],B.[datetime]) AS [m_datetime]
+	, ISNULL(A.[machineID],B.[machineID]) AS [machineID]
+	, ISNULL([comp1],0) AS [comp1]
+	, ISNULL([comp2],0) AS [comp2]
+	, ISNULL([comp3],0) AS [comp3]
+	, ISNULL([comp4],0) AS [comp4]--INTO [maint_pivot] 
+--INTO [maint_pivot]
+FROM [dbo].[telemetry] AS A FULL OUTER JOIN T1 AS B ON (A.[m_datetime]=B.[datetime]) AND (A.[machineID]=B.[machineID])
+--the datetime of Maint table is more than telemetrys' -->full outer join 
+
+-------------------------------------------------------------------------------
+--create clustered index to speed up maint_table pivot
+CREATE CLUSTERED INDEX CI ON [dbo].[maint_pivot]([machineID],[m_datetime]);
+
+-------------------------------------------------------------------------------
+--To recored how many days since the last component replacement(Component repair recored in date, so change hour to day.)
+SELECT  * 
+	,IIF( [comp1]=1,0, DATEDIFF(HOUR, (SELECT MAX([m_datetime]) FROM [dbo].[maint_pivot] AS B WHERE B.[comp1]=1 AND B.[m_datetime]<A.[m_datetime] AND B.[machineID]=A.[machineID]),A.[m_datetime])/24.0) AS [comp1_days]
+	,IIF( [comp2]=1,0, DATEDIFF(HOUR, (SELECT MAX([m_datetime]) FROM [dbo].[maint_pivot] AS B WHERE B.[comp2]=1 AND B.[m_datetime]<A.[m_datetime] AND B.[machineID]=A.[machineID]),A.[m_datetime])/24.0) AS [comp2_days]
+	,IIF( [comp3]=1,0, DATEDIFF(HOUR, (SELECT MAX([m_datetime]) FROM [dbo].[maint_pivot] AS B WHERE B.[comp3]=1 AND B.[m_datetime]<A.[m_datetime] AND B.[machineID]=A.[machineID]),A.[m_datetime])/24.0) AS [comp3_days]
+	,IIF( [comp4]=1,0, DATEDIFF(HOUR, (SELECT MAX([m_datetime]) FROM [dbo].[maint_pivot] AS B WHERE B.[comp4]=1 AND B.[m_datetime]<A.[m_datetime] AND B.[machineID]=A.[machineID]),A.[m_datetime])/24.0) AS [comp4_days]
+--INTO [dbo].[maint_pivot2]
+FROM [dbo].[maint_pivot] AS A
+
