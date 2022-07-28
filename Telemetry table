@@ -1,0 +1,101 @@
+--create 3,4,5,6,9,12,24 hours statement's average
+CREATE FUNCTION PastTimeData1(@t1 DATETIME2(2), @mid INT, @c INT)
+RETURNS NVARCHAR(1024)
+AS
+ BEGIN
+   DECLARE @result NVARCHAR(1024)
+   DECLARE @t2 DATETIME2(2)=DATEADD(HOUR,@c*-1,@t1);
+   SELECT @result=STRING_AGG([volt],',') FROM [dbo].[telemetry]
+		WHERE [m_datetime]>=@t2 AND [m_datetime]<=@t1 AND [machineID]=@mid;
+	RETURN @result
+ END
+GO
+
+CREATE FUNCTION PastTimeData2(@t1 DATETIME2(2), @mid INT, @c INT)
+RETURNS NVARCHAR(1024)
+AS
+ BEGIN
+   DECLARE @result NVARCHAR(1024)
+   DECLARE @t2 DATETIME2(2)=DATEADD(HOUR,@c*-1,@t1);
+   SELECT @result=STRING_AGG([rotate],',') FROM [dbo].[telemetry]
+		WHERE [m_datetime]>=@t2 AND [m_datetime]<=@t1 AND [machineID]=@mid;
+	RETURN @result
+ END
+GO
+
+CREATE FUNCTION PastTimeData3(@t1 DATETIME2(2), @mid INT, @c INT)
+RETURNS NVARCHAR(1024)
+AS
+ BEGIN
+   DECLARE @result NVARCHAR(1024)
+   DECLARE @t2 DATETIME2(2)=DATEADD(HOUR,@c*-1,@t1);
+   SELECT @result=STRING_AGG([pressure],',') FROM [dbo].[telemetry]
+		WHERE [m_datetime]>=@t2 AND [m_datetime]<=@t1 AND [machineID]=@mid;
+	RETURN @result
+ END
+GO
+
+CREATE FUNCTION PastTimeData4(@t1 DATETIME2(2), @mid INT, @c INT)
+RETURNS NVARCHAR(1024)
+AS
+ BEGIN
+   DECLARE @result NVARCHAR(1024)
+   DECLARE @t2 DATETIME2(2)=DATEADD(HOUR,@c*-1,@t1);
+   SELECT @result=STRING_AGG([vibration],',') FROM [dbo].[telemetry]
+		WHERE [m_datetime]>=@t2 AND [m_datetime]<=@t1 AND [machineID]=@mid;
+	RETURN @result
+ END
+GO
+
+
+
+CREATE FUNCTION ZScore(@v1 FLOAT, @data NVARCHAR(1024)) RETURNS FLOAT
+AS
+  BEGIN
+	DECLARE @f2 FLOAT;
+	DECLARE @f3 FLOAT;
+	DECLARE @zz FLOAT;
+	SELECT @f2=AVG(CONVERT(FLOAT,[value])) FROM STRING_SPLIT(@data,',');
+	SELECT @f3=STDEV(CONVERT(FLOAT,[value])) FROM STRING_SPLIT(@data,',');
+	SET @zz=(@v1-@f2)/@f3
+	RETURN @zz;
+  END
+GO
+
+
+SELECT * FROM STRING_SPLIT('158.057,165.697,162.823,155.653',',')
+SELECT dbo.PastTimeData('2015-1-13 03:00:00',4,3);
+SELECT dbo.ZScore(155.653056171563,dbo.PastTimeData('2015-1-13 03:00:00',4,3));
+SELECT dbo.PastTimeData('2015-1-13 03:00:00',4,6);
+SELECT dbo.ZScore(155.653056171563,dbo.PastTimeData('2015-1-13 03:00:00',4,6);
+
+CREATE CLUSTERED INDEX [CI] ON [dbo].[telemetry]([machineID],[m_datetime]);
+
+
+SELECT *
+	,dbo.ZScore(A.[volt],dbo.PastTimeData1(A.[m_datetime],A.machineID,3)) AS [z_volt_3]
+	,dbo.ZScore(A.[volt],dbo.PastTimeData1(A.[m_datetime],A.machineID,4)) AS [z_volt_4]
+	,dbo.ZScore(A.[volt],dbo.PastTimeData1(A.[m_datetime],A.machineID,5)) AS [z_volt_5]
+	,dbo.ZScore(A.[volt],dbo.PastTimeData1(A.[m_datetime],A.machineID,6)) AS [z_volt_6]
+	,dbo.ZScore(A.[volt],dbo.PastTimeData1(A.[m_datetime],A.machineID,12)) AS [z_volt_12]
+	,dbo.ZScore(A.[volt],dbo.PastTimeData1(A.[m_datetime],A.machineID,24)) AS [z_volt_24]
+	,dbo.ZScore(A.[rotate],dbo.PastTimeData2(A.[m_datetime],A.machineID,3)) AS [z_rotate_3]
+	,dbo.ZScore(A.[rotate],dbo.PastTimeData2(A.[m_datetime],A.machineID,4)) AS [z_rotate_4]
+	,dbo.ZScore(A.[rotate],dbo.PastTimeData2(A.[m_datetime],A.machineID,5)) AS [z_rotate_5]
+	,dbo.ZScore(A.[rotate],dbo.PastTimeData2(A.[m_datetime],A.machineID,6)) AS [z_rotate_6]
+	,dbo.ZScore(A.[rotate],dbo.PastTimeData2(A.[m_datetime],A.machineID,12)) AS [z_rotate_12]
+	,dbo.ZScore(A.[rotate],dbo.PastTimeData2(A.[m_datetime],A.machineID,24)) AS [z_rotate_24]
+	,dbo.ZScore(A.[pressure],dbo.PastTimeData3(A.[m_datetime],A.machineID,3)) AS [z_pressure_3]
+	,dbo.ZScore(A.[pressure],dbo.PastTimeData3(A.[m_datetime],A.machineID,4)) AS [z_pressure_4]
+	,dbo.ZScore(A.[pressure],dbo.PastTimeData3(A.[m_datetime],A.machineID,5)) AS [z_pressure_5]
+	,dbo.ZScore(A.[pressure],dbo.PastTimeData3(A.[m_datetime],A.machineID,6)) AS [z_pressure_6]
+	,dbo.ZScore(A.[pressure],dbo.PastTimeData3(A.[m_datetime],A.machineID,12)) AS [z_pressure_12]
+	,dbo.ZScore(A.[pressure],dbo.PastTimeData3(A.[m_datetime],A.machineID,24)) AS [z_pressure_24]
+	,dbo.ZScore(A.[vibration],dbo.PastTimeData4(A.[m_datetime],A.machineID,3)) AS [z_vibration_3]
+	,dbo.ZScore(A.[vibration],dbo.PastTimeData4(A.[m_datetime],A.machineID,4)) AS [z_vibration_4]
+	,dbo.ZScore(A.[vibration],dbo.PastTimeData4(A.[m_datetime],A.machineID,5)) AS [z_vibration_5]
+	,dbo.ZScore(A.[vibration],dbo.PastTimeData4(A.[m_datetime],A.machineID,6)) AS [z_vibration_6]
+	,dbo.ZScore(A.[vibration],dbo.PastTimeData4(A.[m_datetime],A.machineID,12)) AS [z_vibration_12]
+	,dbo.ZScore(A.[vibration],dbo.PastTimeData4(A.[m_datetime],A.machineID,24)) AS [z_vibration_24]
+INTO [dbo].[telemetry_1]
+FROM [dbo].[telemetry] AS A
