@@ -1,0 +1,33 @@
+--create error pivot
+WITH T1 
+AS 
+(
+SELECT [datetime], [machineID], [error1], [error2], [error3], [error4], [error5] 
+FROM [dbo].[errors]
+PIVOT (COUNT(errorID) FOR errorID IN (error1, error2, error3, error4, error5)) AS error_pivot
+)
+SELECT A.m_datetime, A.machineID, 
+	ISNULL(error1,0) AS [error1],
+	ISNULL(error2,0) AS [error2],
+	ISNULL(error3,0) AS [error3],
+	ISNULL(error4,0) AS [error4],
+	ISNULL(error5,0) AS [error5]
+FROM [dbo].[telemetry] AS A LEFT JOIN T1 AS B ON A.[m_datetime]=B.[datetime] AND A.[machineID]=B.[machineID]
+
+-------------------------------------------------------------------------------
+--create clustered index to speed up errors_pivot table
+CREATE CLUSTERED INDEX CI ON [dbo].[errors_pivot]([machineID],[m_datetime]);
+
+-------------------------------------------------------------------------------
+--count errors happened in 6 hours
+SELECT * 
+	,(SELECT SUM([error1]) FROM [errors_pivot] AS B WHERE B.[m_datetime]>=DATEADD(HOUR,-6,A.[m_datetime]) AND B.[m_datetime]<=A.[m_datetime] AND B.[machineID]=A.[machineID]) AS [error1_6hr_sum]
+	,(SELECT SUM([error2]) FROM [errors_pivot] AS B WHERE B.[m_datetime]>=DATEADD(HOUR,-6,A.[m_datetime]) AND B.[m_datetime]<=A.[m_datetime] AND B.[machineID]=A.[machineID]) AS [error2_6hr_sum]
+	,(SELECT SUM([error3]) FROM [errors_pivot] AS B WHERE B.[m_datetime]>=DATEADD(HOUR,-6,A.[m_datetime]) AND B.[m_datetime]<=A.[m_datetime] AND B.[machineID]=A.[machineID]) AS [error3_6hr_sum]
+	,(SELECT SUM([error4]) FROM [errors_pivot] AS B WHERE B.[m_datetime]>=DATEADD(HOUR,-6,A.[m_datetime]) AND B.[m_datetime]<=A.[m_datetime] AND B.[machineID]=A.[machineID]) AS [error4_6hr_sum]
+	,(SELECT SUM([error5]) FROM [errors_pivot] AS B WHERE B.[m_datetime]>=DATEADD(HOUR,-6,A.[m_datetime]) AND B.[m_datetime]<=A.[m_datetime] AND B.[machineID]=A.[machineID]) AS [error5_6hr_sum]
+--INTO [dbo].[errors_pivot2]
+FROM [dbo].[errors_pivot] AS A
+
+
+
